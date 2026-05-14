@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Questionnaire Mathématiques - Version Complète</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- 🔥 Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <!-- MathJax pour les équations mathématiques -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #1a4d2e;
+            --primary-light: #2d6a4f;
+            --accent: #f77f00;
+            --danger: #d62828;
+            --background: #faf9f6;
+            --surface: #ffffff;
+            --text: #2b2b2b;
+            --text-light: #6b6b6b;
+            --border: #e0ddd4;
+        }
+        
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: linear-gradient(135deg, #faf9f6 0%, #ede9e0 100%);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-top: 40px;
+        }
+        
+        .header h1 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+        
+        .header p {
+            color: var(--text-light);
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+        
+        .view {
+            display: none;
+        }
+        
+        .view.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+        
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        input[type="datetime-local"],
+        input[type="file"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Work Sans', sans-serif;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(26, 77, 46, 0.1);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Work Sans', sans-serif;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(26, 77, 46, 0.3);
+        }
+        
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-accent:hover {
+            background: #e67300;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(247, 127, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #e0ddd4;
+            color: var(--text);
+        }
+        
+        .btn-secondary:hover {
+            background: #d0cdc4;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--danger);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            box-shadow: 0 6px 20px rgba(214, 40, 40, 0.4);
+            z-index: 1000;
+            font-family: 'Crimson Pro', serif;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .timer.warning {
+            animation: shake 0.5s infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .question-item {
+            background: #fafafa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .question-number {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.4rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        
+        .question-text {
+            font-size: 1.1rem;
+            margin-bottom: 18px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .question-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .radio-group,
+        .checkbox-group {
+            margin-top: 12px;
+        }
+        
+        .radio-option,
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .radio-option:hover,
+        .checkbox-option:hover {
+            border-color: var(--primary);
+            background: #f8f8f8;
+        }
+        
+        .radio-option input,
+        .checkbox-option input {
+            margin-right: 12px;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+        }
+        
+        .admin-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid var(--border);
+        }
+        
+        .admin-section h3 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .student-list {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .student-item {
+            padding: 10px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+        
+        .student-id {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .alert {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background: #d1f2eb;
+            color: #0f5132;
+            border: 2px solid #a7e9d7;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f1aeb5;
+        }
+        
+        .alert-info {
+            background: #cfe2ff;
+            color: #084298;
+            border: 2px solid #9ec5fe;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        
+        .progress-bar {
+            background: var(--border);
+            height: 8px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .question-editor {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid var(--border);
+        }
+        
+        .option-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .option-input input {
+            flex: 1;
+        }
+        
+        .remove-btn {
+            padding: 8px 16px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .add-option-btn {
+            padding: 8px 16px;
+            background: var(--primary-light);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .date-range-info {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .date-range-info strong {
+            color: var(--primary);
+        }
+
+        .math-preview {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid var(--border);
+            min-height: 50px;
+        }
+
+        .image-preview {
+            max-width: 300px;
+            max-height: 200px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .latex-examples {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        .latex-examples code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .import-section {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px dashed var(--primary);
+        }
+
+        .import-section h4 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.3rem;
+        }
+
+        .file-upload-btn {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-upload-btn input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .stats-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid var(--border);
+        }
+
+        .stats-box strong {
+            color: var(--primary);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+            
+            .timer {
+                position: static;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab {
+                flex: 1;
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📐 Évaluation Mathématiques</h1>
+           
+        </div>
+
+        <!-- Vue de connexion élève -->
+        <div id="loginView" class="view active">
+            <div class="card">
+                <h2 style="font-family: 'Crimson Pro', serif; font-size: 2rem; color: var(--primary); margin-bottom: 20px;">Connexion Élève</h2>
+                
+                <div id="dateInfo" class="date-range-info" style="display: none;">
+                    <strong>📅 Période d'accès :</strong><br>
+                    <span id="dateRangeDisplay"></span>
+                </div>
+
+                <div id="accessMessage"></div>
+
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label for="studentId">Identifiant élève</label>
+                        <input type="text" id="studentId" placeholder="Entrez votre identifiant unique">
+                    </div>
+                    <div class="form-group">
+                        <label for="studentName">Nom complet</label>
+                        <input type="text" id="studentName" placeholder="Prénom NOM">
+                    </div>
+                    <div class="form-group">
+                        <label for="studentClass">📚 Classe</label>
+                        <select id="studentClass" required>
+                            <!-- Les options seront ajoutées dynamiquement -->
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="startQuiz()">Commencer le questionnaire</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2 style="font-family: 'Crimson Pro', serif; font-size: 2rem; color: var(--primary); margin-bottom: 20px;">Accès Enseignant</h2>
+                <div class="form-group">
+                    <label for="adminPassword">Mot de passe</label>
+                    <input type="password" id="adminPassword" placeholder="Mot de passe enseignant">
+                </div>
+                <button class="btn btn-accent" onclick="accessAdmin()">Accéder au panneau de gestion</button>
+            </div>
+        </div>
+
+        <!-- Vue questionnaire -->
+        <div id="quizView" class="view">
+            <div id="timerDisplay" class="timer"></div>
+            <div class="card">
+                <div id="studentInfo" style="background: var(--primary); color: white; padding: 15px; border-radius: 10px; margin-bottom: 25px;"></div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div id="questionsContainer"></div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="submitQuiz()">Soumettre mes réponses</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vue admin -->
+        <div id="adminView" class="view">
+            <div class="card">
+                <h2 style="font-family: 'Crimson Pro', serif; font-size: 2.5rem; color: var(--primary); margin-bottom: 30px;">Panneau de Gestion Enseignant</h2>
+                
+                <!-- Onglets pour les classes -->
+                <div id="classTabsContainer" style="margin-bottom: 30px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 2px solid var(--border); padding-bottom: 10px;" id="classTabs">
+                        <!-- Les onglets seront générés ici -->
+                    </div>
+                </div>
+                
+                <!-- Gestion des classes -->
+                <div class="admin-section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="color: var(--primary); margin-bottom: 15px;">🏫 Gestion des Classes</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" id="newClassName" placeholder="Nom de la nouvelle classe" style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
+                        <button class="btn btn-primary" onclick="addClass()" style="white-space: nowrap;">➕ Ajouter</button>
+                        <button class="btn" onclick="renameCurrentClass()" style="white-space: nowrap; background: var(--accent); color: white;">✏️ Renommer</button>
+                        <button class="btn" onclick="deleteCurrentClass()" style="white-space: nowrap; background: var(--danger); color: white;">🗑️ Supprimer</button>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: var(--text-light);">
+                        Classe actuelle : <strong id="currentClassDisplay"></strong>
+                    </p>
+                </div>
+                
+                <!-- Configuration du questionnaire -->
+                <div class="admin-section">
+                    <h3>⚙️ Configuration du questionnaire</h3>
+                    <div class="form-group">
+                        <label for="quizTitle">Titre du questionnaire</label>
+                        <input type="text" id="quizTitle" value="Évaluation de mathématiques">
+                    </div>
+                    <div class="two-columns">
+                        <div class="form-group">
+                            <label for="timeLimit">Temps limite (minutes)</label>
+                            <input type="number" id="timeLimit" value="30" min="1" max="180">
+                        </div>
+                    </div>
+                    
+                    <h4 style="color: var(--primary); margin-top: 25px; margin-bottom: 15px;">📅 Période d'accès</h4>
+                    <div class="two-columns">
+                        <div class="form-group">
+                            <label for="startDate">Date et heure de début</label>
+                            <input type="datetime-local" id="startDate">
+                            <p class="help-text">Laisser vide = accès immédiat</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">Date et heure de fin</label>
+                            <input type="datetime-local" id="endDate">
+                            <p class="help-text">Laisser vide = pas de limite</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gestion des questions -->
+                <div class="admin-section">
+                    <h3>📝 Questions du questionnaire</h3>
+                    
+                    <div class="alert alert-info">
+                        <strong>💡 Aide pour les équations LaTeX :</strong><br>
+                        Utilisez $ pour les équations en ligne : <code>$x^2 + y^2 = z^2$</code><br>
+                        Utilisez $$ pour les équations centrées : <code>$$\frac{a}{b} = c$$</code>
+                    </div>
+
+                    <div class="latex-examples">
+                        <strong>Exemples LaTeX :</strong><br>
+                        <code>$x^2$</code> pour x²  •  
+                        <code>$\frac{a}{b}$</code> pour a/b  •  
+                        <code>$\sqrt{x}$</code> pour √x  •  
+                        <code>$\int_0^1$</code> pour intégrale  •
+                        <code>$\lim_{x \to \infty}$</code> pour limite
+                    </div>
+
+                    <div id="questionsEditor"></div>
+                    <button class="btn btn-secondary" onclick="addQuestion()">+ Ajouter une question</button>
+                </div>
+
+                <!-- Gestion des élèves -->
+                <div class="admin-section">
+                    <h3>👥 Gestion des élèves</h3>
+                    
+                    <!-- Import Excel -->
+                    <div class="import-section">
+                        <h4>📥 Option 1 : Importer depuis Excel (Recommandé)</h4>
+                        <p style="margin-bottom: 15px; color: var(--text-light);">
+                            Importez toute votre liste d'élèves en une seule fois !
+                        </p>
+                        
+                        <div class="button-group">
+                            <button class="btn btn-accent" onclick="downloadTemplate()">
+                                📄 Télécharger le modèle Excel
+                            </button>
+                            
+                            <div class="file-upload-btn">
+                                <label for="excelFile" class="btn btn-primary">
+                                    📂 Importer un fichier Excel
+                                </label>
+                                <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="importExcel(this)">
+                            </div>
+                        </div>
+
+                        <div id="importStatus" style="margin-top: 15px;"></div>
+                    </div>
+
+                    <!-- Ajout manuel -->
+                    <div style="margin-top: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 15px;">✍️ Option 2 : Ajouter manuellement</h4>
+                        
+                        <div class="tabs">
+                            <button class="tab active" onclick="switchTab('single')">Un élève</button>
+                            <button class="tab" onclick="switchTab('multiple')">Plusieurs élèves</button>
+                        </div>
+
+                        <div id="singleTab" class="tab-content active">
+                            <div class="form-group">
+                                <label for="newStudentId">Identifiant élève</label>
+                                <input type="text" id="newStudentId" placeholder="ex: ELEVE001 ou 3A_MARTIN">
+                            </div>
+                            <button class="btn btn-secondary" onclick="addStudent()">Ajouter cet élève</button>
+                        </div>
+
+                        <div id="multipleTab" class="tab-content">
+                            <div class="form-group">
+                                <label for="bulkStudents">Liste d'identifiants (un par ligne)</label>
+                                <textarea id="bulkStudents" placeholder="ELEVE001
+ELEVE002
+ELEVE003
+3A_MARTIN
+3A_DUPONT" style="min-height: 150px;"></textarea>
+                                <p class="help-text">Collez votre liste ici, un identifiant par ligne</p>
+                            </div>
+                            <button class="btn btn-secondary" onclick="addBulkStudents()">Ajouter tous ces élèves</button>
+                        </div>
+                    </div>
+
+                    <div class="stats-box">
+                        <strong>📊 Statistiques :</strong> 
+                        <span id="studentCount">0</span> élève(s) enregistré(s)
+                    </div>
+
+                    <div class="student-list" id="studentList"></div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-accent" onclick="exportStudentList()">📥 Exporter la liste des élèves</button>
+                        <button class="btn btn-secondary" onclick="clearAllStudents()">🗑️ Supprimer tous les élèves</button>
+                    </div>
+                </div>
+
+                <!-- Résultats -->
+                <div class="admin-section">
+                    <h3>📊 Résultats</h3>
+                    <div id="resultsContainer" class="student-list"></div>
+                    <button class="btn btn-accent" onclick="exportToExcel()">📥 Exporter les résultats vers Excel</button>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="saveConfig()">💾 Sauvegarder la configuration</button>
+                    <button class="btn btn-primary" onclick="logout()">Retour à l'accueil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        // 🏫 GESTION MULTI-CLASSES
+        // ====================================
+        
+        let classes = ['1ère Générale', '1ère STI2D', '1ère STMG', 'Seconde', 'Troisième'];
+        let currentClass = '1ère Générale';
+        let classesData = {}; // Stocke les données de chaque classe
+        
+        // Configuration par défaut pour une nouvelle classe
+        const defaultConfig = {
+            adminPassword: 'admin123',
+            timeLimit: 30,
+            quizTitle: 'Évaluation de mathématiques',
+            startDate: null,
+            endDate: null,
+            questions: [
+                {
+                    type: 'qcm',
+                    question: 'Résoudre : $x^2 - 5x + 6 = 0$',
+                    image: null,
+                    options: ['$x = 2$ ou $x = 3$', '$x = -2$ ou $x = -3$', '$x = 1$ ou $x = 6$', '$x = 0$ ou $x = 5$'],
+                    correctAnswer: '$x = 2$ ou $x = 3$'
+                },
+                {
+                    type: 'qcm',
+                    question: 'Quelle est la dérivée de $f(x) = x^3$ ?',
+                    image: null,
+                    options: ['$3x^2$', '$x^2$', '$3x$', '$\\frac{x^4}{4}$'],
+                    correctAnswer: '$3x^2$'
+                },
+                {
+                    type: 'text',
+                    question: 'Calculer : $$\\int_0^2 (2x + 1) dx$$',
+                    image: null,
+                    correctAnswer: ''
+                }
+            ],
+            students: []
+        };
+
+        // Initialiser les données pour toutes les classes au démarrage
+        classes.forEach(className => {
+            classesData[className] = JSON.parse(JSON.stringify(defaultConfig));
+        });
+        
+        // Fonctions helper pour gérer la classe actuelle
+        function getConfig() {
+            return classesData[currentClass];
+        }
+        
+        function saveCurrentConfig() {
+            // La config est déjà dans classesData[currentClass], pas besoin de faire quoi que ce soit
+        }
+
+        let responses = [];
+        // ====================================
+        // 🔥 CONFIGURATION FIREBASE
+        // ====================================
+        // ⚠️ IMPORTANT: REMPLACEZ CES VALEURS PAR VOTRE CONFIGURATION FIREBASE !
+        // Voir le guide GUIDE-FIREBASE.md pour obtenir ces valeurs
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_N8UOfymkNVgKnkN6CkF-9mSTYzzb29o",
+            authDomain: "evalmath-98e07.firebaseapp.com",
+            projectId: "evalmath-98e07",
+            storageBucket: "evalmath-98e07.firebasestorage.app",
+            messagingSenderId: "574256827731",
+            appId: "1:574256827731:web:719af9d3f6b0b3e98325a6"
+        };
+
+        // Initialiser Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            var db = firebase.firestore();
+            console.log('✅ Firebase initialisé avec succès');
+        } catch (error) {
+            console.error('❌ Erreur initialisation Firebase:', error);
+            alert('ERREUR: Veuillez configurer Firebase dans le code (voir GUIDE-FIREBASE.md)');
+        }
+
+        // ====================================
+        // FONCTIONS FIREBASE
+        // ====================================
+
+        // Sauvegarder la configuration dans Firebase
+        async function saveConfigToFirebase() {
+            try {
+                await db.collection('config').doc('quizConfig').set(config);
+                console.log('✅ Configuration sauvegardée dans Firebase');
+            } catch (error) {
+                console.error('❌ Erreur sauvegarde config:', error);
+                alert('Erreur lors de la sauvegarde : ' + error.message);
+            }
+        }
+
+        // Charger la configuration depuis Firebase
+        async function loadConfigFromFirebase() {
+            try {
+                const docRef = db.collection('config').doc('quizConfig');
+                const doc = await docRef.get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    config = data;
+                    console.log('✅ Configuration chargée depuis Firebase');
+                    updateStudentCount();
+                    displayQuestionsEditor();
+                } else {
+                    console.log('ℹ️ Aucune configuration trouvée, utilisation config par défaut');
+                    await saveConfigToFirebase();
+                }
+            } catch (error) {
+                console.error('❌ Erreur chargement config:', error);
+            }
+        }
+
+        // Sauvegarder les réponses dans Firebase
+        async function saveResponseToFirebase(response) {
+            try {
+                await db.collection('responses').add(response);
+                console.log('✅ Réponse sauvegardée dans Firebase');
+            } catch (error) {
+                console.error('❌ Erreur sauvegarde réponse:', error);
+                alert('Erreur lors de la sauvegarde de votre réponse : ' + error.message);
+            }
+        }
+
+        // Charger toutes les réponses depuis Firebase
+        async function loadResponsesFromFirebase() {
+            try {
+                const querySnapshot = await db.collection('responses').get();
+                responses = [];
+                querySnapshot.forEach((doc) => {
+                    responses.push(doc.data());
+                });
+                console.log(`✅ ${responses.length} réponse(s) chargée(s) depuis Firebase`);
+                displayResults();
+            } catch (error) {
+                console.error('❌ Erreur chargement réponses:', error);
+            }
+        }
+
+        // Écouter les changements en temps réel
+        function listenToConfigChanges() {
+            db.collection('config').doc('quizConfig')
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        config = doc.data();
+                        console.log('🔄 Configuration mise à jour en temps réel');
+                        updateStudentCount();
+                        checkAccessibility();
+                        displayQuestionsEditor();
+                    }
+                }, (error) => {
+                    console.error('❌ Erreur écoute temps réel:', error);
+                });
+        }
+
+        // Écouter les nouvelles réponses en temps réel
+        function listenToResponses() {
+            db.collection('responses')
+                .onSnapshot((snapshot) => {
+                    responses = [];
+                    snapshot.forEach((doc) => {
+                        responses.push(doc.data());
+                    });
+                    console.log(`🔄 ${responses.length} réponse(s) mise(s) à jour`);
+                    displayResults();
+                }, (error) => {
+                    console.error('❌ Erreur écoute réponses:', error);
+                });
+        }
+
+        // ====================================
+        // 🏫 FONCTIONS GESTION DES CLASSES
+        // ====================================
+        
+        function renderClassTabs() {
+            const tabsContainer = document.getElementById('classTabs');
+            if (!tabsContainer) return;
+            
+            tabsContainer.innerHTML = classes.map(className => `
+                <button 
+                    onclick="switchClass('${className}')" 
+                    class="btn ${className === currentClass ? 'btn-primary' : ''}"
+                    style="padding: 10px 20px; ${className === currentClass ? 'background: var(--primary); color: white;' : 'background: white;'}"
+                >
+                    ${className}
+                </button>
+            `).join('');
+            
+            // Mettre à jour l'affichage de la classe actuelle
+            const currentClassDisplay = document.getElementById('currentClassDisplay');
+            if (currentClassDisplay) {
+                currentClassDisplay.textContent = currentClass;
+            }
+        }
+        
+        function switchClass(className) {
+            if (!classes.includes(className)) return;
+            currentClass = className;
+            renderClassTabs();
+            refreshAdminPanel();
+            console.log(`✅ Basculé vers la classe: ${className}`);
+        }
+        
+        function addClass() {
+            const input = document.getElementById('newClassName');
+            const newClassName = input.value.trim();
+            
+            if (!newClassName) {
+                alert('⚠️ Veuillez entrer un nom de classe');
+                return;
+            }
+            
+            if (classes.includes(newClassName)) {
+                alert('⚠️ Cette classe existe déjà');
+                return;
+            }
+            
+            classes.push(newClassName);
+            classesData[newClassName] = JSON.parse(JSON.stringify(defaultConfig));
+            input.value = '';
+            
+            renderClassTabs();
+            renderClassSelector();
+            saveAllClassesToFirebase();
+            
+            alert(`✅ Classe "${newClassName}" ajoutée avec succès !`);
+        }
+        
+        function renameCurrentClass() {
+            const newName = prompt(`Renommer la classe "${currentClass}" :`, currentClass);
+            if (!newName || newName.trim() === '') return;
+            
+            const trimmedName = newName.trim();
+            if (classes.includes(trimmedName) && trimmedName !== currentClass) {
+                alert('⚠️ Ce nom de classe existe déjà');
+                return;
+            }
+            
+            const index = classes.indexOf(currentClass);
+            classesData[trimmedName] = classesData[currentClass];
+            delete classesData[currentClass];
+            classes[index] = trimmedName;
+            currentClass = trimmedName;
+            
+            renderClassTabs();
+            renderClassSelector();
+            saveAllClassesToFirebase();
+            
+            alert(`✅ Classe renommée en "${trimmedName}"`);
+        }
+        
+        function deleteCurrentClass() {
+            if (classes.length <= 1) {
+                alert('⚠️ Vous devez garder au moins une classe');
+                return;
+            }
+            
+            if (!confirm(`⚠️ Supprimer la classe "${currentClass}" ?\n\nToutes les données (élèves, questions, résultats) seront perdues !`)) {
+                return;
+            }
+            
+            const index = classes.indexOf(currentClass);
+            classes.splice(index, 1);
+            delete classesData[currentClass];
+            
+            currentClass = classes[0];
+            
+            renderClassTabs();
+            renderClassSelector();
+            refreshAdminPanel();
+            saveAllClassesToFirebase();
+            
+            alert(`✅ Classe supprimée`);
+        }
+        
+        function renderClassSelector() {
+            const selector = document.getElementById('studentClass');
+            if (!selector) return;
+            
+            selector.innerHTML = classes.map(className => 
+                `<option value="${className}">${className}</option>`
+            ).join('');
+        }
+        
+        function refreshAdminPanel() {
+            // Rafraîchir tous les éléments de l'interface admin
+            const config = getConfig();
+            document.getElementById('quizTitle').value = getConfig().quizTitle;
+            document.getElementById('timeLimit').value = getConfig().timeLimit;
+            
+            if (getConfig().startDate) {
+                document.getElementById('startDate').value = new Date(getConfig().startDate).toISOString().slice(0, 16);
+            } else {
+                document.getElementById('startDate').value = '';
+            }
+            
+            if (getConfig().endDate) {
+                document.getElementById('endDate').value = new Date(getConfig().endDate).toISOString().slice(0, 16);
+            } else {
+                document.getElementById('endDate').value = '';
+            }
+            
+            displayQuestionsEditor();
+            displayStudentList();
+            updateStudentCount();
+            displayResults();
+        }
+        
+        async function saveAllClassesToFirebase() {
+            try {
+                await db.collection('config').doc('classes').set({
+                    classes: classes,
+                    classesData: classesData,
+                    currentClass: currentClass
+                });
+                console.log('✅ Toutes les classes sauvegardées dans Firebase');
+            } catch (error) {
+                console.error('❌ Erreur sauvegarde classes:', error);
+            }
+        }
+        
+        async function loadAllClassesFromFirebase() {
+            try {
+                const doc = await db.collection('config').doc('classes').get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    classes = data.classes || classes;
+                    classesData = data.classesData || classesData;
+                    currentClass = data.currentClass || classes[0];
+                    console.log('✅ Classes chargées depuis Firebase');
+                } else {
+                    // Première utilisation, sauvegarder la config par défaut
+                    await saveAllClassesToFirebase();
+                }
+                renderClassTabs();
+                renderClassSelector();
+            } catch (error) {
+                console.error('❌ Erreur chargement classes:', error);
+            }
+        }
+
+
+        let currentStudent = null;
+        let timerInterval = null;
+        let timeRemaining = 0;
+
+        // Charger la configuration (maintenant depuis Firebase)
+        async function loadConfig() {
+            await loadAllClassesFromFirebase();
+            await loadResponsesFromFirebase();
+            refreshAdminPanel();
+        }
+
+        // Sauvegarder la configuration (maintenant dans Firebase)
+        async function saveConfig() {
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
+            
+            const config = getConfig();
+            config.startDate = startDateInput ? new Date(startDateInput).toISOString() : null;
+            config.endDate = endDateInput ? new Date(endDateInput).toISOString() : null;
+            config.quizTitle = document.getElementById('quizTitle').value;
+            config.timeLimit = parseInt(document.getElementById('timeLimit').value);
+
+            await saveAllClassesToFirebase();
+        }
+
+        // Changer d'onglet
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Télécharger le modèle Excel
+        function downloadTemplate() {
+            const data = [
+                ['Identifiant', 'Nom (optionnel)', 'Classe (optionnel)'],
+                ['ELEVE001', 'Martin Dupont', '3A'],
+                ['ELEVE002', 'Sophie Bernard', '3A'],
+                ['ELEVE003', 'Lucas Petit', '3B']
+            ];
+            
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Liste élèves');
+            
+            XLSX.writeFile(workbook, 'modele_liste_eleves.xlsx');
+        }
+
+        // Importer depuis Excel
+        function importExcel(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+                    
+                    let imported = 0;
+                    let skipped = 0;
+                    
+                    // Ignorer la première ligne (en-têtes)
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        const id = row[0] ? row[0].toString().trim().toUpperCase() : '';
+                        
+                        if (id && !getConfig().students.includes(id)) {
+                            getConfig().students.push(id);
+                            imported++;
+                        } else if (id) {
+                            skipped++;
+                        }
+                    }
+                    
+                    displayStudentList();
+                    updateStudentCount();
+                    saveConfig();
+                    
+                    document.getElementById('importStatus').innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ Import réussi !<br>
+                            ${imported} élève(s) importé(s)${skipped > 0 ? `, ${skipped} doublons ignorés` : ''}
+                        </div>
+                    `;
+                    
+                    // Réinitialiser l'input
+                    input.value = '';
+                    
+                } catch (error) {
+                    document.getElementById('importStatus').innerHTML = `
+                        <div class="alert alert-error">
+                            ❌ Erreur lors de l'import : ${error.message}
+                        </div>
+                    `;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Ajouter un élève
+        function addStudent() {
+            const id = document.getElementById('newStudentId').value.trim().toUpperCase();
+            if (!id) {
+                alert('⚠️ Veuillez entrer un identifiant');
+                return;
+            }
+            if (getConfig().students.includes(id)) {
+                alert('⚠️ Cet identifiant existe déjà');
+                return;
+            }
+            getConfig().students.push(id);
+            document.getElementById('newStudentId').value = '';
+            displayStudentList();
+            updateStudentCount();
+            saveConfig();
+        }
+
+        // Ajouter plusieurs élèves
+        function addBulkStudents() {
+            const text = document.getElementById('bulkStudents').value;
+            const lines = text.split('\n').map(l => l.trim().toUpperCase()).filter(l => l);
+            
+            let added = 0;
+            let skipped = 0;
+            
+            lines.forEach(id => {
+                if (!getConfig().students.includes(id)) {
+                    getConfig().students.push(id);
+                    added++;
+                } else {
+                    skipped++;
+                }
+            });
+            
+            document.getElementById('bulkStudents').value = '';
+            displayStudentList();
+            updateStudentCount();
+            saveConfig();
+            
+            alert(`✅ ${added} élève(s) ajouté(s)${skipped > 0 ? `\n⚠️ ${skipped} doublon(s) ignoré(s)` : ''}`);
+        }
+
+        // Supprimer un élève
+        function removeStudent(id) {
+            if (confirm(`Supprimer l'élève ${id} ?`)) {
+                getConfig().students = getConfig().students.filter(s => s !== id);
+                displayStudentList();
+                updateStudentCount();
+                saveConfig();
+            }
+        }
+
+        // Supprimer tous les élèves
+        function clearAllStudents() {
+            if (confirm('⚠️ Supprimer TOUS les élèves de la liste ?\n\nCette action est irréversible !')) {
+                getConfig().students = [];
+                displayStudentList();
+                updateStudentCount();
+                saveConfig();
+            }
+        }
+
+        // Exporter la liste des élèves
+        function exportStudentList() {
+            if (getConfig().students.length === 0) {
+                alert('⚠️ Aucun élève à exporter');
+                return;
+            }
+
+            const data = getConfig().students.map((id, index) => ({
+                'N°': index + 1,
+                'Identifiant': id
+            }));
+            
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Élèves');
+            
+            XLSX.writeFile(workbook, `liste_eleves_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        // Afficher la liste des élèves
+        function displayStudentList() {
+            const list = document.getElementById('studentList');
+            if (getConfig().students.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 20px;">Aucun élève enregistré</p>';
+                return;
+            }
+            
+            list.innerHTML = getConfig().students.map((id, index) => `
+                <div class="student-item">
+                    <span><strong>#${index + 1}</strong> - <span class="student-id">${id}</span></span>
+                    <button class="remove-btn" onclick="removeStudent('${id}')">Supprimer</button>
+                </div>
+            `).join('');
+        }
+
+        // Mettre à jour le compteur
+        function updateStudentCount() {
+            document.getElementById('studentCount').textContent = getConfig().students.length;
+        }
+
+        // Vérifier l'accessibilité
+        function checkAccessibility() {
+            const now = new Date();
+            const dateInfoDiv = document.getElementById('dateInfo');
+            const dateRangeDisplay = document.getElementById('dateRangeDisplay');
+            const accessMessage = document.getElementById('accessMessage');
+            const loginForm = document.getElementById('loginForm');
+
+            if (getConfig().startDate || getConfig().endDate) {
+                dateInfoDiv.style.display = 'block';
+                let dateText = '';
+                
+                if (getConfig().startDate) {
+                    const startDate = new Date(getConfig().startDate);
+                    dateText += `Début : ${startDate.toLocaleString('fr-FR')}<br>`;
+                }
+                
+                if (getConfig().endDate) {
+                    const endDate = new Date(getConfig().endDate);
+                    dateText += `Fin : ${endDate.toLocaleString('fr-FR')}`;
+                }
+                
+                dateRangeDisplay.innerHTML = dateText;
+            }
+
+            if (getConfig().startDate) {
+                const startDate = new Date(getConfig().startDate);
+                if (now < startDate) {
+                    accessMessage.innerHTML = `
+                        <div class="alert alert-warning">
+                            ⏳ <strong>Le questionnaire n'est pas encore accessible.</strong><br>
+                            Il ouvrira le : ${startDate.toLocaleString('fr-FR')}
+                        </div>
+                    `;
+                    loginForm.style.display = 'none';
+                    return false;
+                }
+            }
+
+            if (getConfig().endDate) {
+                const endDate = new Date(getConfig().endDate);
+                if (now > endDate) {
+                    accessMessage.innerHTML = `
+                        <div class="alert alert-error">
+                            ❌ <strong>Le questionnaire est fermé.</strong><br>
+                            La date limite était le : ${endDate.toLocaleString('fr-FR')}
+                        </div>
+                    `;
+                    loginForm.style.display = 'none';
+                    return false;
+                }
+            }
+
+            accessMessage.innerHTML = '';
+            loginForm.style.display = 'block';
+            return true;
+        }
+
+        // Connexion élève
+        function startQuiz() {
+            if (!checkAccessibility()) return;
+
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            const selectedClass = document.getElementById('studentClass').value;
+            
+            if (!studentId || !studentName || !selectedClass) {
+                alert('⚠️ Veuillez remplir tous les champs');
+                return;
+            }
+            
+            // Basculer vers la classe sélectionnée par l'élève
+            currentClass = selectedClass;
+            const config = getConfig();
+            
+            if (!config.students.includes(studentId)) {
+                alert('❌ Identifiant invalide pour cette classe. Contactez votre enseignant.');
+                return;
+            }
+            
+            if (responses.some(r => r.studentId === studentId && r.class === selectedClass)) {
+                alert('⚠️ Vous avez déjà répondu à ce questionnaire.');
+                return;
+            }
+            
+            currentStudent = { id: studentId, name: studentName, class: selectedClass };
+            showView('quizView');
+            displayQuestions();
+            startTimer();
+        }
+
+        // Afficher les questions
+        function displayQuestions() {
+            const container = document.getElementById('questionsContainer');
+            const studentInfo = document.getElementById('studentInfo');
+            
+            studentInfo.innerHTML = `
+                <strong>Élève:</strong> ${currentStudent.name} (${currentStudent.id})<br>
+                <strong>Questionnaire:</strong> ${getConfig().quizTitle}
+            `;
+            
+            container.innerHTML = '';
+            
+            getConfig().questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-item';
+                
+                let imageHTML = '';
+                if (q.image) {
+                    imageHTML = `<img src="${q.image}" class="question-image" alt="Image de la question">`;
+                }
+
+                let answersHTML = '';
+                
+                if (q.type === 'qcm') {
+                    answersHTML = '<div class="radio-group">';
+                    q.options.forEach((option, optIndex) => {
+                        answersHTML += `
+                            <label class="radio-option">
+                                <input type="radio" name="q${index}" value="${option}">
+                                <span>${option}</span>
+                            </label>
+                        `;
+                    });
+                    answersHTML += '</div>';
+                } else if (q.type === 'text') {
+                    answersHTML = `<textarea class="answer-text" id="answer${index}" placeholder="Votre réponse..."></textarea>`;
+                }
+                
+                questionDiv.innerHTML = `
+                    <div class="question-number">Question ${index + 1}</div>
+                    <div class="question-text">${q.question}</div>
+                    ${imageHTML}
+                    ${answersHTML}
+                `;
+                
+                container.appendChild(questionDiv);
+            });
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise();
+            }
+            
+            updateProgress();
+        }
+
+        // Démarrer le chronomètre
+        function startTimer() {
+            timeRemaining = getConfig().timeLimit * 60;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    submitQuiz(true);
+                }
+            }, 1000);
+        }
+
+        // Mettre à jour le chronomètre
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const display = document.getElementById('timerDisplay');
+            display.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeRemaining <= 60) {
+                display.classList.add('warning');
+            }
+        }
+
+        // Mettre à jour la progression
+        function updateProgress() {
+            const totalQuestions = getConfig().questions.length;
+            let answered = 0;
+            
+            getConfig().questions.forEach((q, index) => {
+                if (q.type === 'qcm') {
+                    const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                    if (selected) answered++;
+                } else {
+                    const textAnswer = document.getElementById(`answer${index}`);
+                    if (textAnswer && textAnswer.value.trim()) answered++;
+                }
+            });
+            
+            const percentage = (answered / totalQuestions) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+
+        document.addEventListener('change', updateProgress);
+        document.addEventListener('input', updateProgress);
+
+        // Soumettre le questionnaire
+        async function submitQuiz(timeUp = false) {
+            if (!timeUp && !confirm('Êtes-vous sûr de vouloir soumettre vos réponses ?')) {
+                return;
+            }
+            
+            clearInterval(timerInterval);
+            
+            const answers = [];
+            getConfig().questions.forEach((q, index) => {
+                let answer = '';
+                if (q.type === 'qcm') {
+                    const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                    answer = selected ? selected.value : '';
+                } else {
+                    const textAnswer = document.getElementById(`answer${index}`);
+                    answer = textAnswer ? textAnswer.value : '';
+                }
+                answers.push(answer);
+            });
+            
+            const response = {
+                studentId: currentStudent.id,
+                studentName: currentStudent.name,
+                class: currentStudent.class,
+                timestamp: new Date().toISOString(),
+                answers: answers,
+                timeSpent: (getConfig().timeLimit * 60 - timeRemaining)
+            };
+            
+            responses.push(response);
+            await saveResponseToFirebase(response);
+            
+            alert(timeUp ? 
+                '⏰ Temps écoulé ! Vos réponses ont été enregistrées.' : 
+                '✅ Vos réponses ont été enregistrées avec succès !');
+            
+            logout();
+        }
+
+        // Accès admin
+        function accessAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === getConfig().adminPassword) {
+                showView('adminView');
+                displayAdminPanel();
+            } else {
+                alert('❌ Mot de passe incorrect');
+            }
+        }
+
+        // Afficher le panneau admin
+        function displayAdminPanel() {
+            renderClassTabs();
+            renderClassSelector();
+            
+            document.getElementById('quizTitle').value = getConfig().quizTitle;
+            document.getElementById('timeLimit').value = getConfig().timeLimit;
+            
+            if (getConfig().startDate) {
+                const startDate = new Date(getConfig().startDate);
+                document.getElementById('startDate').value = formatDateTimeLocal(startDate);
+            }
+            if (getConfig().endDate) {
+                const endDate = new Date(getConfig().endDate);
+                document.getElementById('endDate').value = formatDateTimeLocal(endDate);
+            }
+            
+            displayStudentList();
+            updateStudentCount();
+            displayQuestionsEditor();
+            displayResults();
+        }
+
+        // Formater date
+        function formatDateTimeLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // Convertir image en Base64
+        function convertImageToBase64(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                callback(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Afficher l'éditeur de questions
+        function displayQuestionsEditor() {
+            const editor = document.getElementById('questionsEditor');
+            editor.innerHTML = getConfig().questions.map((q, index) => `
+                <div class="question-editor">
+                    <div class="form-group">
+                        <label>Type de question</label>
+                        <select onchange="updateQuestionType(${index}, this.value)">
+                            <option value="qcm" ${q.type === 'qcm' ? 'selected' : ''}>QCM</option>
+                            <option value="text" ${q.type === 'text' ? 'selected' : ''}>Réponse libre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Question (vous pouvez utiliser LaTeX)</label>
+                        <textarea onchange="updateQuestion(${index}, 'question', this.value); renderMathPreview(${index})">${q.question}</textarea>
+                        <p class="help-text">Utilisez $ pour les équations : $x^2$, $$\\frac{a}{b}$$, $\\sqrt{x}$, etc.</p>
+                        <div id="mathPreview${index}" class="math-preview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Image (optionnel)</label>
+                        <input type="file" accept="image/*" onchange="handleImageUpload(${index}, this)">
+                        ${q.image ? `<img src="${q.image}" class="image-preview" id="imagePreview${index}">` : ''}
+                        ${q.image ? `<button class="btn btn-secondary btn-small" onclick="removeImage(${index})">Supprimer l'image</button>` : ''}
+                    </div>
+                    ${q.type === 'qcm' ? `
+                        <div class="form-group">
+                            <label>Options (peuvent contenir du LaTeX)</label>
+                            ${q.options.map((opt, optIndex) => `
+                                <div class="option-input">
+                                    <input type="text" value="${opt}" onchange="updateOption(${index}, ${optIndex}, this.value)">
+                                    <button class="remove-btn" onclick="removeOption(${index}, ${optIndex})">×</button>
+                                </div>
+                            `).join('')}
+                            <button class="add-option-btn" onclick="addOption(${index})">+ Ajouter une option</button>
+                        </div>
+                    ` : ''}
+                    <button class="remove-btn" onclick="removeQuestion(${index})">Supprimer cette question</button>
+                </div>
+            `).join('');
+
+            getConfig().questions.forEach((q, index) => {
+                renderMathPreview(index);
+            });
+        }
+
+        // Rendre l'aperçu LaTeX
+        function renderMathPreview(index) {
+            setTimeout(() => {
+                const previewDiv = document.getElementById(`mathPreview${index}`);
+                if (previewDiv && getConfig().questions[index]) {
+                    previewDiv.innerHTML = `<strong>Aperçu :</strong><br>${getConfig().questions[index].question}`;
+                    if (window.MathJax) {
+                        MathJax.typesetPromise([previewDiv]);
+                    }
+                }
+            }, 100);
+        }
+
+        // Gérer l'upload d'image
+        function handleImageUpload(qIndex, input) {
+            const file = input.files[0];
+            if (file) {
+                convertImageToBase64(file, function(base64) {
+                    getConfig().questions[qIndex].image = base64;
+                    displayQuestionsEditor();
+                    saveConfig();
+                });
+            }
+        }
+
+        // Supprimer une image
+        function removeImage(qIndex) {
+            getConfig().questions[qIndex].image = null;
+            displayQuestionsEditor();
+            saveConfig();
+        }
+
+        // Ajouter une question
+        function addQuestion() {
+            getConfig().questions.push({
+                type: 'qcm',
+                question: 'Nouvelle question (utilisez $x^2$ pour LaTeX)',
+                image: null,
+                options: ['Option 1', 'Option 2', 'Option 3'],
+                correctAnswer: ''
+            });
+            displayQuestionsEditor();
+            saveConfig();
+        }
+
+        // Supprimer une question
+        function removeQuestion(index) {
+            if (confirm('Supprimer cette question ?')) {
+                getConfig().questions.splice(index, 1);
+                displayQuestionsEditor();
+                saveConfig();
+            }
+        }
+
+        // Mettre à jour une question
+        function updateQuestion(index, field, value) {
+            getConfig().questions[index][field] = value;
+            saveConfig();
+        }
+
+        // Mettre à jour le type de question
+        function updateQuestionType(index, type) {
+            getConfig().questions[index].type = type;
+            if (type === 'qcm' && !getConfig().questions[index].options) {
+                getConfig().questions[index].options = ['Option 1', 'Option 2'];
+            }
+            displayQuestionsEditor();
+            saveConfig();
+        }
+
+        // Ajouter une option
+        function addOption(qIndex) {
+            getConfig().questions[qIndex].options.push('Nouvelle option');
+            displayQuestionsEditor();
+            saveConfig();
+        }
+
+        // Supprimer une option
+        function removeOption(qIndex, optIndex) {
+            getConfig().questions[qIndex].options.splice(optIndex, 1);
+            displayQuestionsEditor();
+            saveConfig();
+        }
+
+        // Mettre à jour une option
+        function updateOption(qIndex, optIndex, value) {
+            getConfig().questions[qIndex].options[optIndex] = value;
+            saveConfig();
+        }
+
+        // Afficher les résultats
+        function displayResults() {
+            const container = document.getElementById('resultsContainer');
+            if (responses.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-light);">Aucune réponse enregistrée pour le moment.</p>';
+                return;
+            }
+            
+            container.innerHTML = responses.map(r => `
+                <div class="student-item">
+                    <div>
+                        <strong>${r.studentName}</strong> (${r.studentId})<br>
+                        <small style="color: var(--text-light);">
+                            ${new Date(r.timestamp).toLocaleString('fr-FR')} • 
+                            Temps: ${Math.floor(r.timeSpent / 60)}min ${r.timeSpent % 60}s
+                        </small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Exporter vers Excel
+        function exportToExcel() {
+            if (responses.length === 0) {
+                alert('⚠️ Aucune réponse à exporter');
+                return;
+            }
+            
+            const data = responses.map(r => {
+                const row = {
+                    'Identifiant': r.studentId,
+                    'Nom': r.studentName,
+                    'Date': new Date(r.timestamp).toLocaleString('fr-FR'),
+                    'Temps passé (secondes)': r.timeSpent
+                };
+                
+                r.answers.forEach((answer, index) => {
+                    row[`Q${index + 1}`] = answer;
+                });
+                
+                return row;
+            });
+            
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Réponses');
+            
+            const filename = `resultats_${getConfig().quizTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(workbook, filename);
+        }
+
+        // Changer de vue
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            if (viewId === 'loginView') {
+                checkAccessibility();
+            }
+        }
+
+        // Déconnexion
+        function logout() {
+            clearInterval(timerInterval);
+            currentStudent = null;
+            showView('loginView');
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('adminPassword').value = '';
+        }
+
+        // Sauvegarder avant de quitter
+        window.addEventListener('beforeunload', () => {
+            if (currentStudent && timeRemaining > 0) {
+                return 'Votre questionnaire n\'est pas encore soumis. Voulez-vous vraiment quitter ?';
+            }
+        });
+
+        // Initialiser avec Firebase
+        (async function() {
+            await loadConfig();
+            checkAccessibility();
+            listenToConfigChanges(); // Écouter les changements en temps réel
+            listenToResponses(); // Écouter les nouvelles réponses
+        })();
+    </script>
+</body>
+</html>
